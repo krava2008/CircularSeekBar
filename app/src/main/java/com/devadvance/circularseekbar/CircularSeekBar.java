@@ -29,12 +29,17 @@ package com.devadvance.circularseekbar;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -42,10 +47,11 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ImageView;
 
 import com.kkbox.ryanwang.circularseekbartest.R;
 
-public class CircularSeekBar extends View {
+public class CircularSeekBar extends ImageView {
 
 	/**
 	 * Used to scale the dp units to pixels
@@ -257,22 +263,6 @@ public class CircularSeekBar extends View {
 	 */
 	private boolean mMoveOutsideCircle;
 
-    /**
-     * Used for enabling/disabling the lock option for easier hitting of the 0 progress mark.
-     * */
-    private boolean lockEnabled = true;
-
-	/**
-	 * Used for when the user moves beyond the start of the circle when moving counter clockwise.
-	 * Makes it easier to hit the 0 progress mark.
-	 */
-	private boolean lockAtStart = true;
-
-	/**
-	 * Used for when the user moves beyond the end of the circle when moving clockwise.
-	 * Makes it easier to hit the 100% (max) progress mark.
-	 */
-	private boolean lockAtEnd = false;
 
 	/**
 	 * When the user is touching the circle on ACTION_DOWN, this is set to true.
@@ -353,6 +343,8 @@ public class CircularSeekBar extends View {
 	 */
 	private float[] mPointerPositionXY = new float[2];
 
+    private Bitmap mBitmap = null;
+
 	/**
 	 * Listener.
 	 */
@@ -364,6 +356,7 @@ public class CircularSeekBar extends View {
 	 * @param attrArray TypedArray containing the attributes.
 	 */
 	private void initAttributes(TypedArray attrArray) {
+        Log.d("123","--------------");
 		mCircleXRadius = (float) (attrArray.getFloat(R.styleable.CircularSeekBar_circle_x_radius, DEFAULT_CIRCLE_X_RADIUS) * DPTOPX_SCALE);
 		mCircleYRadius = (float) (attrArray.getFloat(R.styleable.CircularSeekBar_circle_y_radius, DEFAULT_CIRCLE_Y_RADIUS) * DPTOPX_SCALE);
 		mPointerRadius = (float) (attrArray.getFloat(R.styleable.CircularSeekBar_pointer_radius, DEFAULT_POINTER_RADIUS) * DPTOPX_SCALE);
@@ -437,7 +430,6 @@ public class CircularSeekBar extends View {
 		mCustomRadii = attrArray.getBoolean(R.styleable.CircularSeekBar_use_custom_radii, DEFAULT_USE_CUSTOM_RADII);
 		mMaintainEqualCircle = attrArray.getBoolean(R.styleable.CircularSeekBar_maintain_equal_circle, DEFAULT_MAINTAIN_EQUAL_CIRCLE);
 		mMoveOutsideCircle = attrArray.getBoolean(R.styleable.CircularSeekBar_move_outside_circle, DEFAULT_MOVE_OUTSIDE_CIRCLE);
-        lockEnabled = attrArray.getBoolean(R.styleable.CircularSeekBar_lock_enabled, DEFAULT_LOCK_ENABLED);
 
 		// Modulo 360 right now to avoid constant conversion
 		mStartAngle = ((360f + (attrArray.getFloat((R.styleable.CircularSeekBar_start_angle), DEFAULT_START_ANGLE) % 360f)) % 360f);
@@ -448,6 +440,8 @@ public class CircularSeekBar extends View {
 			mEndAngle = mEndAngle - .1f;
 		}
 
+        int id = attrArray.getResourceId(R.styleable.CircularSeekBar_background,0);
+        Log.d("123","--------------id:"+id);
 
 	}
 
@@ -566,6 +560,12 @@ public class CircularSeekBar extends View {
 
 		canvas.translate(this.getWidth() / 2, this.getHeight() / 2);
 
+//        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.xx);
+//
+//        Paint paint = new Paint();
+//        Bitmap roundBitmap =  getCroppedBitmap(bitmap, this.getWidth());
+//        canvas.drawBitmap(roundBitmap, -this.getWidth()/2,-this.getHeight()/2, null);
+
 		canvas.drawPath(mCirclePath, mCirclePaint);
 		canvas.drawPath(mCircleProgressPath, mCircleProgressGlowPaint);
 		canvas.drawPath(mCircleProgressPath, mCircleProgressPaint);
@@ -577,7 +577,37 @@ public class CircularSeekBar extends View {
 		if (mUserIsMovingPointer) {
 			canvas.drawCircle(mPointerPositionXY[0], mPointerPositionXY[1], mPointerRadius + mPointerHaloWidth + (mPointerHaloBorderWidth / 2f), mPointerHaloBorderPaint);
 		}
+
+
 	}
+
+    public static Bitmap getCroppedBitmap(Bitmap bmp, int radius) {
+        Bitmap sbmp;
+        if(bmp.getWidth() != radius || bmp.getHeight() != radius)
+            sbmp = Bitmap.createScaledBitmap(bmp, radius, radius, false);
+        else
+            sbmp = bmp;
+        Bitmap output = Bitmap.createBitmap(sbmp.getWidth(),
+                sbmp.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+
+        final int color = 0xffa19774;
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, sbmp.getWidth(), sbmp.getHeight());
+
+        paint.setAntiAlias(true);
+        paint.setFilterBitmap(true);
+        paint.setDither(true);
+        canvas.drawARGB(0, 0, 0, 0);
+        paint.setColor(Color.parseColor("#BAB399"));
+        canvas.drawCircle(sbmp.getWidth() / 2+0.7f, sbmp.getHeight() / 2+0.7f,
+                sbmp.getWidth() / 2, paint);
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(sbmp, rect, rect, paint);
+
+
+        return output;
+    }
 
 	/**
 	 * Get the progress of the CircularSeekBar.
@@ -659,14 +689,6 @@ public class CircularSeekBar extends View {
 		recalculateAll();
 	}
 
-    public boolean isLockEnabled() {
-        return lockEnabled;
-    }
-
-    public void setLockEnabled(boolean lockEnabled) {
-        this.lockEnabled = lockEnabled;
-    }
-
     @Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// Convert coordinates to our internal coordinate system
@@ -736,8 +758,6 @@ public class CircularSeekBar extends View {
 					mOnCircularSeekBarChangeListener.onStartTrackingTouch(this);
 				}
 				mUserIsMovingPointer = true;
-				lockAtEnd = false;
-				lockAtStart = false;
 			} else if (cwDistanceFromStart > mTotalCircleDegrees) { // If the user is touching outside of the start AND end
 				mUserIsMovingPointer = false;
 				return false;
@@ -754,8 +774,6 @@ public class CircularSeekBar extends View {
 					mOnCircularSeekBarChangeListener.onProgressChanged(this, mProgress, true);
 				}
 				mUserIsMovingPointer = true;
-				lockAtEnd = false;
-				lockAtStart = false;
 			} else { // If the user is not touching near the circle
 				mUserIsMovingPointer = false;
 				return false;
@@ -764,57 +782,6 @@ public class CircularSeekBar extends View {
 		case MotionEvent.ACTION_MOVE:
 			Log.d("123","mUserIsMovingPointer:"+mUserIsMovingPointer);
 			if (mUserIsMovingPointer) {
-//				if (lastCWDistanceFromStart < cwDistanceFromStart) {
-//					if ((cwDistanceFromStart - lastCWDistanceFromStart) > 180f && !mIsMovingCW) {
-//						lockAtStart = true;
-//						lockAtEnd = false;
-//					} else {
-//						mIsMovingCW = true;
-//					}
-//				} else {
-//					if ((lastCWDistanceFromStart - cwDistanceFromStart) > 180f && mIsMovingCW) {
-//						lockAtEnd = true;
-//						lockAtStart = false;
-//					} else {
-//						mIsMovingCW = false;
-//					}
-//				}
-
-				if (lockAtStart && mIsMovingCW) {
-					lockAtStart = false;
-				}
-				if (lockAtEnd && !mIsMovingCW) {
-					lockAtEnd = false;
-				}
-				if (lockAtStart && !mIsMovingCW && (ccwDistanceFromStart > 90)) {
-					lockAtStart = false;
-				}
-				if (lockAtEnd && mIsMovingCW && (cwDistanceFromEnd > 90)) {
-					lockAtEnd = false;
-				}
-//				// Fix for passing the end of a semi-circle quickly
-//				if (!lockAtEnd && cwDistanceFromStart > mTotalCircleDegrees && mIsMovingCW && lastCWDistanceFromStart < mTotalCircleDegrees) {
-//					lockAtEnd = true;
-//				}
-
-//				if (lockAtStart && lockEnabled) {
-//					// TODO: Add a check if mProgress is already 0, in which case don't call the listener
-//					mProgress = 0;
-//					recalculateAll();
-//					invalidate();
-//					if (mOnCircularSeekBarChangeListener != null) {
-//						mOnCircularSeekBarChangeListener.onProgressChanged(this, mProgress, true);
-//					}
-//
-//				} else if (lockAtEnd && lockEnabled) {
-//					mProgress = mMax;
-//					recalculateAll();
-//					invalidate();
-//					if (mOnCircularSeekBarChangeListener != null) {
-//						mOnCircularSeekBarChangeListener.onProgressChanged(this, mProgress, true);
-//					}
-//				}
-//				else
 				if ((mMoveOutsideCircle) || (touchEventRadius <= outerRadius)) {
 					if (!(cwDistanceFromStart > mTotalCircleDegrees)) {
 						Log.d("123","---------touchAngle---------:"+touchAngle);
@@ -904,7 +871,6 @@ public class CircularSeekBar extends View {
 		state.putInt("mPointerHaloColorOnTouch", mPointerHaloColorOnTouch);
 		state.putInt("mPointerAlpha", mPointerAlpha);
 		state.putInt("mPointerAlphaOnTouch", mPointerAlphaOnTouch);
-        state.putBoolean("lockEnabled", lockEnabled);
 
 		return state;
 	}
@@ -925,8 +891,6 @@ public class CircularSeekBar extends View {
 		mPointerHaloColorOnTouch = savedState.getInt("mPointerHaloColorOnTouch");
 		mPointerAlpha = savedState.getInt("mPointerAlpha");
 		mPointerAlphaOnTouch = savedState.getInt("mPointerAlphaOnTouch");
-        lockEnabled = savedState.getBoolean("lockEnabled");
-
 		initPaints();
 
 		recalculateAll();

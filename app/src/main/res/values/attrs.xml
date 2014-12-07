@@ -23,6 +23,7 @@
         <attr name="start_angle" format="float"></attr>
         <attr name="end_angle" format="float"></attr>
         <attr name="circle_fill" format="string"></attr>
+        <attr name = "background" format = "reference" />
     </declare-styleable>
 
 </resources>
