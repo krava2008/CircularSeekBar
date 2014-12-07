@@ -572,6 +572,8 @@ public class CircularSeekBar extends ImageView {
 
 		canvas.drawPath(mCirclePath, mCircleFillPaint);
 
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.ic_launcher);
+        canvas.drawBitmap(bitmap, mPointerPositionXY[0]-bitmap.getWidth()/2, mPointerPositionXY[1]-bitmap.getHeight()/2, null);
 		canvas.drawCircle(mPointerPositionXY[0], mPointerPositionXY[1], mPointerRadius + mPointerHaloWidth, mPointerHaloPaint);
 		canvas.drawCircle(mPointerPositionXY[0], mPointerPositionXY[1], mPointerRadius, mPointerPaint);
 		if (mUserIsMovingPointer) {
